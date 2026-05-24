@@ -1,0 +1,25 @@
+# Kernel module build artifacts
+*.o
+*.o.cmd
+*.ko
+*.mod
+*.mod.c
+*.mod.o
+*.mod.cmd
+*.order
+*.symvers
+Module.symvers
+modules.order
+
+# Kbuild intermediate files
+.*.cmd
+.tmp_versions/
+
+# Generated dependency and temp files
+*.d
+*.tmp
+*.i
+*.s
+
+# Build logs
+*.log
