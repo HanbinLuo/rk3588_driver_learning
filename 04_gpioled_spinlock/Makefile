@@ -3,9 +3,9 @@ export CROSS_COMPILE=/home/lhb/linux/rk3588_driver/rk3588_sdk/prebuilts/gcc/linu
 KERNELDIR := /home/lhb/linux/rk3588_driver/rk3588_sdk/kernel
 CURRENT_PATH := $(shell pwd)
 CC := $(CROSS_COMPILE)gcc
-APP_TARGET := chrdevbaseApp
-APP_SRCS := chrdevbaseApp.c
-obj-m := chrdevbase.o
+APP_TARGET := ledApp_spinlock
+APP_SRCS := ledApp_spinlock.c
+obj-m := gpioled_spinlock.o
 
 build: kernel_modules app
 
