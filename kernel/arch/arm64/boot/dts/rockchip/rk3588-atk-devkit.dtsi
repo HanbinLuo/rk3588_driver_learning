@@ -238,7 +238,7 @@
 	};
 	
 	gpio-leds {
-		compatible = "gpio-leds";
+		compatible = "lhb,gpio-leds";
 		pinctrl-names = "default";
 		pinctrl-0 = <&gpio_leds_gpio>;
 		status = "okay";
@@ -941,7 +941,6 @@
 	gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&work_leds_gpio>;
-	status = "disabled";
 };
 
 &can1 {
