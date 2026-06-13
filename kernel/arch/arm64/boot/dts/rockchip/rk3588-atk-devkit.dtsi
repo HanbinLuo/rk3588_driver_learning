@@ -268,10 +268,10 @@
 		};
 	};
 
-	gpio-keys {
-		compatible = "gpio-keys";
+	lhb-keys {
+		compatible = "lhb,gpio-keys";
 		pinctrl-names = "default";
-		pinctrl-0 = <&gpio_keys_gpio>;
+		pinctrl-0 = <&lhb_keys_gpio>;
 		status = "okay";
 
 		key0 {
@@ -771,7 +771,7 @@
 	};
 
 	keys {
-		gpio_keys_gpio: gpio-keys-gpio {
+		lhb_keys_gpio: lhb-keys-gpio {
 			rockchip,pins =
 				<1 RK_PA4 RK_FUNC_GPIO &pcfg_pull_up>,
 				<1 RK_PA2 RK_FUNC_GPIO &pcfg_pull_up>,
