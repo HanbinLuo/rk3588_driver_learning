@@ -241,6 +241,7 @@ void timer_function(struct timer_list *arg)
 
 	sta = !sta;		/* 每次都取反，实现LED灯反转 */
 	led_set_all(dev, sta);
+	printk("timer_function: LED state changed to %d\n", sta);
 	
 	/* 重启定时器 */
 	spin_lock_irqsave(&dev->lock, flags);
