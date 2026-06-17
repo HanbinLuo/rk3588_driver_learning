@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# 放在SDK根目录下执行，用于Linux系统烧录RK3588，RK3588需要处于Loader模式
 # 定义路径
 SDK_ROOT=$(pwd)
 UPGRADE_TOOL="${SDK_ROOT}/tools/linux/Linux_Upgrade_Tool/Linux_Upgrade_Tool/upgrade_tool"
