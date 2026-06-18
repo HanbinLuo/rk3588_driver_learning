@@ -278,6 +278,8 @@
 			label = "key0";
 			linux,code = <KEY_0>;
 			gpios = <&gpio1 RK_PA4 GPIO_ACTIVE_LOW>;
+			interrupt-parent = <&gpio1>;
+			interrupts = <RK_PA4 IRQ_TYPE_EDGE_BOTH>;
 			debounce-interval = <10>;
 		};
 
@@ -285,6 +287,8 @@
 			label = "key1";
 			linux,code = <KEY_1>;
 			gpios = <&gpio1 RK_PA2 GPIO_ACTIVE_LOW>;
+			interrupt-parent = <&gpio1>;
+			interrupts = <RK_PA2 IRQ_TYPE_EDGE_BOTH>;
 			debounce-interval = <10>;
 		};
 
@@ -292,6 +296,8 @@
 			label = "key2";
 			linux,code = <KEY_2>;
 			gpios = <&gpio0 RK_PB2 GPIO_ACTIVE_LOW>;
+			interrupt-parent = <&gpio0>;
+			interrupts = <RK_PB2 IRQ_TYPE_EDGE_BOTH>;
 			debounce-interval = <10>;
 		};
 	};
