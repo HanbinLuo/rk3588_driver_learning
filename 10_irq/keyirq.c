@@ -235,7 +235,17 @@ static int key_parse_dt(void)
 
 static int key_open(struct inode *inode, struct file *filp)
 {
+	unsigned long flags;
+
 	filp->private_data = &key;
+
+	/* Drop stale events generated before this app opened /dev/key. */
+	spin_lock_irqsave(&key.spinlock, flags);
+	key.event.id = -1;
+	key.event.status = KEY_KEEP;
+	key.has_event = 0;
+	spin_unlock_irqrestore(&key.spinlock, flags);
+
 	return 0;
 }
 
