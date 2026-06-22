@@ -237,8 +237,8 @@
 		status = "disabled";
 	};
 	
-	gpio-leds {
-		compatible = "lhb,gpio-leds";
+	leds: leds {
+		compatible = "gpio-leds";
 		pinctrl-names = "default";
 		pinctrl-0 = <&gpio_leds_gpio>;
 		status = "okay";
