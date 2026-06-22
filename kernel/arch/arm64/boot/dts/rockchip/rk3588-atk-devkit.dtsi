@@ -301,6 +301,12 @@
 			debounce-interval = <10>;
 		};
 	};
+
+	miscled {
+		compatible = "lhb,miscled";
+		miscled-gpio = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
 };
 
 &combphy0_ps {
@@ -947,6 +953,7 @@
 	gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&work_leds_gpio>;
+	status = "disabled";
 };
 
 &can1 {
