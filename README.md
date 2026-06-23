@@ -175,7 +175,8 @@ rndis_dhcp_start()
 		echo "end $RNDIS_DHCP_END"
 		echo "interface usb0"
 		echo "option subnet $RNDIS_NETMASK"
-		echo "option router $RNDIS_IP"
+		# Do not advertise a default gateway, so the host keeps WiFi/Ethernet for Internet access.
+		# echo "option router $RNDIS_IP"
 		echo "option lease $RNDIS_DHCP_LEASE_TIME"
 		echo "lease_file $RNDIS_DHCP_LEASES"
 		echo "pidfile $RNDIS_DHCP_PID"
@@ -203,7 +204,7 @@ rndis_stop()
 2. 生成 `/tmp/udhcpd-usb0.conf`。
 3. 启动 `udhcpd`，给电脑端 USB 网卡分配 `192.168.110.2 - 192.168.110.20` 中的地址。
 
-这样 Windows 端不需要手动填写 IPv4，只需设置为自动获取。
+这里不向主机下发默认网关，因此 Windows 或 Ubuntu 会继续使用 WiFi/有线网访问互联网，只把 `192.168.110.0/24` 网段流量走 USB 网卡。Windows 端不需要手动填写 IPv4，只需设置为自动获取。
 
 ## 修改四：确保 Buildroot 编译 udhcpd
 
@@ -342,7 +343,6 @@ start 192.168.110.2
 end 192.168.110.20
 interface usb0
 option subnet 255.255.255.0
-option router 192.168.110.1
 ```
 
 ## 电脑端验证

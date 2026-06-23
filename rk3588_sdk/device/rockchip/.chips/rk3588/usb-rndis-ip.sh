@@ -32,7 +32,8 @@ rndis_dhcp_start()
 		echo "end $RNDIS_DHCP_END"
 		echo "interface usb0"
 		echo "option subnet $RNDIS_NETMASK"
-		echo "option router $RNDIS_IP"
+		# Do not advertise a default gateway, so the host keeps WiFi/Ethernet for Internet access.
+		# echo "option router $RNDIS_IP"
 		echo "option lease $RNDIS_DHCP_LEASE_TIME"
 		echo "lease_file $RNDIS_DHCP_LEASES"
 		echo "pidfile $RNDIS_DHCP_PID"
