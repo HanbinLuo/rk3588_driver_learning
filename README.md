@@ -1,81 +1,88 @@
-# RK3588 USB ADB + RNDIS 复合设备
+# 正点原子 RK3588 SDK 配置 USB0 为 ADB + USB 网卡复合设备
 
-## 方案
+本文记录如何在正点原子 RK3588 SDK 中，将 USB0 配置为一个 USB composite gadget，使同一个 USB 口同时具备 ADB 调试和 RNDIS USB 网卡能力。完成后，开发板通过 USB 连接电脑时，电脑既可以继续使用 ADB，也可以通过固定 IP 访问开发板。
 
-使用一个 USB composite gadget，在同一个 USB 口上同时提供：
+usb_net/rk3588_sdk目录按 SDK 原始路径保存了本次修改涉及的文件，方便后续对比、恢复或移植。
+
+## 目标效果
+
+最终 USB0 的功能如下：
 
 ```text
 ADB + RNDIS USB 网卡
 ```
 
-当前验证结果：
+网络参数如下：
 
 ```text
-板端 usb0: 192.168.110.1/24
-DHCP 地址池: 192.168.110.2 - 192.168.110.20
-主机可自动获取 IPv4 地址，也可以手动配置 192.168.110.2/24
-ADB: 正常
+开发板 usb0 固定 IP: 192.168.110.1/24
+DHCP 地址池:          192.168.110.2 - 192.168.110.20
+电脑端 IPv4:          自动获取
 ```
 
-## 关键结论
+连接电脑后，可以使用：
 
-- 不再使用“USB0 ADB + USB1 独立 RNDIS”的双 gadget 方案。
-- 双 gadget 方案曾在 `fc400000.usb` 枚举时触发内核 Oops。
-- 当前方案让 SDK 原有 `usbdevice` 创建一个复合 gadget，更符合 Rockchip SDK 的设计。
-- `usb0` 是 RNDIS 网卡接口名，不代表 USB0 物理口。
+```sh
+adb devices
+ping 192.168.110.1
+ssh root@192.168.110.1
+```
 
-## 备份文件
+## 方案说明
 
-### `rk3588_sdk/kernel/arch/arm64/boot/dts/rockchip/rk3588-atk-devkit.dtsi`
+本文采用单 USB0 复合设备方案：只使用 USB0 对应的 `fc000000.usb`，由 SDK 原有的 `usbdevice` 脚本创建一个 composite gadget，并在同一个 gadget 中同时启用 `adb` 和 `rndis` function。
 
-原始路径：
+板端可通过下面命令查看当前可用 UDC：
 
 ```text
-/home/lhb/linux/rk3588_driver/rk3588_sdk/kernel/arch/arm64/boot/dts/rockchip/rk3588-atk-devkit.dtsi
+ls /sys/class/udc
 ```
 
-作用：
-
-- 保证 USB0 DWC3/OTG gadget 控制器可用。
-- 当前 USB0 节点：
-
-```dts
-&usbdrd_dwc3_0 {
-	dr_mode = "otg";
-	status = "okay";
-	usb-role-switch;
-};
-```
-
-当前备份文件中 USB1 gadget/device 节点为 disabled，用于避免 `fc400000.usb` 再作为独立 gadget 枚举。
-
-### `rk3588_sdk/kernel/arch/arm64/configs/rockchip_linux_defconfig`
-
-原始路径：
+当前配置会优先选择：
 
 ```text
-/home/lhb/linux/rk3588_driver/rk3588_sdk/kernel/arch/arm64/configs/rockchip_linux_defconfig
+fc000000.usb
 ```
 
-新增/保留配置：
+需要注意：
+
+- `usb0` 是 Linux 中 RNDIS 网卡接口名，不等于 USB0 物理控制器名。
+- `fc000000.usb` 是当前方案优先绑定的 UDC。
+- ADB 和 RNDIS 是同一个 USB 设备下的两个 function。
+- Windows 端显示“未识别的网络”通常不影响使用，因为这是点对点调试网卡，没有公网网关。
+
+## 文件清单
+
+本次修改涉及以下 SDK 文件：
 
 ```text
-CONFIG_USB_CONFIGFS_NCM=y
-CONFIG_USB_CONFIGFS_ECM=y
-CONFIG_USB_CONFIGFS_RNDIS=y
+rk3588_sdk/device/rockchip/.chips/rk3588/alientek_rk3588_defconfig
+rk3588_sdk/device/rockchip/.chips/rk3588/usb-rndis-ip.sh
+rk3588_sdk/external/rkscript/usbdevice
+rk3588_sdk/kernel/arch/arm64/configs/rockchip_linux_defconfig
+rk3588_sdk/kernel/arch/arm64/boot/dts/rockchip/rk3588-atk-devkit.dtsi
+rk3588_sdk/buildroot/configs/rockchip/alientek.config
+rk3588_sdk/buildroot/board/rockchip/alientek/busybox.fragment
 ```
 
-作用：
-
-- 让内核 configfs gadget 支持 USB 网卡相关 function。
-- 当前实际使用的是 RNDIS。
-
-### `rk3588_sdk/device/rockchip/.chips/rk3588/alientek_rk3588_defconfig`
-
-原始路径：
+这些文件在当前备份目录中也各保存了一份：
 
 ```text
-/home/lhb/linux/rk3588_driver/rk3588_sdk/device/rockchip/.chips/rk3588/alientek_rk3588_defconfig
+usb_net/rk3588_sdk/device/rockchip/.chips/rk3588/alientek_rk3588_defconfig
+usb_net/rk3588_sdk/device/rockchip/.chips/rk3588/usb-rndis-ip.sh
+usb_net/rk3588_sdk/external/rkscript/usbdevice
+usb_net/rk3588_sdk/kernel/arch/arm64/configs/rockchip_linux_defconfig
+usb_net/rk3588_sdk/kernel/arch/arm64/boot/dts/rockchip/rk3588-atk-devkit.dtsi
+usb_net/rk3588_sdk/buildroot/configs/rockchip/alientek.config
+usb_net/rk3588_sdk/buildroot/board/rockchip/alientek/busybox.fragment
+```
+
+## 修改一：启用 SDK USB gadget 功能
+
+文件：
+
+```text
+rk3588_sdk/device/rockchip/.chips/rk3588/alientek_rk3588_defconfig
 ```
 
 关键配置：
@@ -87,61 +94,24 @@ RK_USB_RNDIS=y
 RK_USB_HOOKS="usb-rndis-ip.sh"
 ```
 
-作用：
+含义：
 
-- 安装并启用 SDK 原有 `usbdevice` 服务。
-- 让 `usbdevice` 在同一个 gadget 中创建 `adb + rndis`。
-- 安装 hook，用于给 RNDIS 网卡配置静态 IP 并启动 DHCP 服务。
+- `RK_USB_ENABLED=y`：启用 SDK 的 USB gadget 服务。
+- `RK_USB_ADBD=y`：启用 ADB function。
+- `RK_USB_RNDIS=y`：启用 RNDIS USB 网卡 function。
+- `RK_USB_HOOKS="usb-rndis-ip.sh"`：安装并加载自定义 hook，用于配置 `usb0` IP 和启动 DHCP 服务。
 
-### `rk3588_sdk/buildroot/configs/rockchip/alientek.config`
+这一步决定了 rootfs 中会安装并启动 Rockchip SDK 的 `usbdevice` 服务，同时让它创建 `adb + rndis` 复合设备。
 
-原始路径：
+## 修改二：让 usbdevice 绑定到 USB0 UDC
 
-```text
-/home/lhb/linux/rk3588_driver/rk3588_sdk/buildroot/configs/rockchip/alientek.config
-```
-
-关键配置：
+文件：
 
 ```text
-BR2_PACKAGE_BUSYBOX_CONFIG_FRAGMENT_FILES+=" board/rockchip/alientek/busybox.fragment"
+rk3588_sdk/external/rkscript/usbdevice
 ```
 
-作用：
-
-- 引入 ALIENTEK 专用 BusyBox 配置片段。
-- 保证 rootfs 里会编译出 `udhcpd`，供 USB RNDIS DHCP 使用。
-
-### `rk3588_sdk/buildroot/board/rockchip/alientek/busybox.fragment`
-
-原始路径：
-
-```text
-/home/lhb/linux/rk3588_driver/rk3588_sdk/buildroot/board/rockchip/alientek/busybox.fragment
-```
-
-内容：
-
-```text
-CONFIG_UDHCPD=y
-CONFIG_FEATURE_UDHCPD_WRITE_LEASES_EARLY=y
-CONFIG_DHCPD_LEASES_FILE="/tmp/udhcpd.leases"
-```
-
-作用：
-
-- 打开 BusyBox 的 DHCP server applet。
-- 让 `usb-rndis-ip.sh` 可以启动 `udhcpd` 给主机分配地址。
-
-### `rk3588_sdk/external/rkscript/usbdevice`
-
-原始路径：
-
-```text
-/home/lhb/linux/rk3588_driver/rk3588_sdk/external/rkscript/usbdevice
-```
-
-关键改动：
+关键修改：
 
 ```sh
 source "/etc/usbdevice.d/$hook"
@@ -149,20 +119,26 @@ USB_UDC=${USB_UDC:-$(ls /sys/class/udc/ | grep -m 1 fc000000 || true)}
 USB_UDC=${USB_UDC:-$(ls /sys/class/udc/ | head -n 1)}
 ```
 
-作用：
+第一处修改修正 hook 加载路径，让 `usb-rndis-ip.sh` 能从 `/etc/usbdevice.d/` 被正确加载。
 
-- 正确从 `/etc/usbdevice.d/` 加载 hook。
-- 优先把 composite gadget 绑定到 `fc000000.usb`。
+第二处修改让 gadget 优先绑定到 `fc000000.usb`。如果系统中找不到该 UDC，再回退到 `/sys/class/udc/` 中的第一个 UDC。
 
-### `rk3588_sdk/device/rockchip/.chips/rk3588/usb-rndis-ip.sh`
-
-原始路径：
+启动后，日志中应能看到类似信息：
 
 ```text
-/home/lhb/linux/rk3588_driver/rk3588_sdk/device/rockchip/.chips/rk3588/usb-rndis-ip.sh
+Using USB UDC device: fc000000.usb
+Starting functions: rndis adb
 ```
 
-内容：
+## 修改三：配置 RNDIS IP 和 DHCP 服务
+
+文件：
+
+```text
+rk3588_sdk/device/rockchip/.chips/rk3588/usb-rndis-ip.sh
+```
+
+当前脚本内容：
 
 ```sh
 RNDIS_IP=${RNDIS_IP:-192.168.110.1}
@@ -221,24 +197,96 @@ rndis_stop()
 }
 ```
 
-作用：
+这个 hook 会在 RNDIS function 启动后执行 `rndis_start()`：
 
-- RNDIS function 启动后配置板端 USB 网卡 IP。
-- 启动 `udhcpd`，给 Windows/Linux 主机自动分配 `192.168.110.x` 地址。
-- 不创建第二个独立 USB gadget。
+1. 将开发板端 `usb0` 配置为 `192.168.110.1/24`。
+2. 生成 `/tmp/udhcpd-usb0.conf`。
+3. 启动 `udhcpd`，给电脑端 USB 网卡分配 `192.168.110.2 - 192.168.110.20` 中的地址。
 
-默认网络：
+这样 Windows 端不需要手动填写 IPv4，只需设置为自动获取。
+
+## 修改四：确保 Buildroot 编译 udhcpd
+
+只写 `usb-rndis-ip.sh` 还不够，rootfs 中必须存在 `udhcpd` 命令。因此需要打开 BusyBox 的 DHCP server applet。
+
+文件：
 
 ```text
-板端 IP:       192.168.110.1
-DHCP 起始地址: 192.168.110.2
-DHCP 结束地址: 192.168.110.20
-子网掩码:      255.255.255.0
+rk3588_sdk/buildroot/configs/rockchip/alientek.config
 ```
 
-## 编译
+关键配置：
 
-如果改动包含 DTS 或 kernel config：
+```text
+BR2_PACKAGE_BUSYBOX_CONFIG_FRAGMENT_FILES+=" board/rockchip/alientek/busybox.fragment"
+```
+
+文件：
+
+```text
+rk3588_sdk/buildroot/board/rockchip/alientek/busybox.fragment
+```
+
+内容：
+
+```text
+CONFIG_UDHCPD=y
+CONFIG_FEATURE_UDHCPD_WRITE_LEASES_EARLY=y
+CONFIG_DHCPD_LEASES_FILE="/tmp/udhcpd.leases"
+```
+
+这样重新编译 rootfs 后，BusyBox 会包含 `udhcpd`，开发板启动 RNDIS 时才能自动给电脑发 IP。
+
+## 修改五：内核启用 USB 网卡 function
+
+文件：
+
+```text
+rk3588_sdk/kernel/arch/arm64/configs/rockchip_linux_defconfig
+```
+
+关键配置：
+
+```text
+CONFIG_USB_CONFIGFS_NCM=y
+CONFIG_USB_CONFIGFS_ECM=y
+CONFIG_USB_CONFIGFS_RNDIS=y
+```
+
+当前实际使用的是 RNDIS。保留 NCM 和 ECM 是为了后续需要兼容 Linux/macOS 或其他 USB 网卡模式时有扩展空间。
+
+## 修改六：设备树保持 USB0 gadget 可用
+
+文件：
+
+```text
+rk3588_sdk/kernel/arch/arm64/boot/dts/rockchip/rk3588-atk-devkit.dtsi
+```
+
+USB0 DWC3 节点需要保持可用：
+
+```dts
+&usbdrd_dwc3_0 {
+	dr_mode = "otg";
+	status = "okay";
+	usb-role-switch;
+};
+```
+
+本方案只需要保证 USB0 对应的 DWC3 gadget 控制器可用，后续 ADB 和 RNDIS function 都由 `usbdevice` 在同一个 composite gadget 中创建。
+
+## 编译和打包
+
+如果只修改了 rootfs 脚本、Buildroot 配置或 USB hook：
+
+```sh
+cd /home/lhb/linux/rk3588_driver/rk3588_sdk
+./build.sh buildroot
+./build.sh firmware
+./build.sh updateimg
+```
+
+如果同时修改了内核 defconfig 或 DTS：
 
 ```sh
 cd /home/lhb/linux/rk3588_driver/rk3588_sdk
@@ -248,35 +296,38 @@ cd /home/lhb/linux/rk3588_driver/rk3588_sdk
 ./build.sh updateimg
 ```
 
-如果只改 rootfs 脚本或板级 rootfs 配置：
+其中：
 
-```sh
-./build.sh buildroot
-./build.sh firmware
-./build.sh updateimg
-```
+- `buildroot`：重新生成 rootfs，包含 `usbdevice`、hook、`udhcpd` 等 rootfs 内容。
+- `kernel`：重新编译内核和设备树。
+- `firmware`：刷新 `rockdev/` 下的分区镜像链接和固件目录。
+- `updateimg`：重新生成整包 `update.img`。
+
+如果只运行 `./build.sh firmware`，通常不会重新编译 rootfs，也不会生成新的 `update.img`，这也是修改脚本后看起来没有生效的常见原因。
 
 ## 板端验证
 
+烧录后进入开发板，查看 USB gadget 状态：
+
 ```sh
-cat /var/log/usbdevice.log | grep "Starting functions"
+cat /var/log/usbdevice.log | grep -E "Using USB UDC|Starting functions"
 cat /sys/kernel/config/usb_gadget/rockchip/UDC
 ls /sys/kernel/config/usb_gadget/rockchip/functions
 ifconfig usb0
 ```
 
-期望：
+期望结果包含：
 
 ```text
+Using USB UDC device: fc000000.usb
 Starting functions: rndis adb
 fc000000.usb
 ffs.adb
 rndis.gs0
 192.168.110.1
-udhcpd
 ```
 
-也可以确认 DHCP 服务：
+确认 DHCP 服务：
 
 ```sh
 which udhcpd
@@ -284,15 +335,28 @@ ps | grep udhcpd
 cat /tmp/udhcpd-usb0.conf
 ```
 
-## 主机端验证
-
-主机 USB 网卡配置：
+期望 `/tmp/udhcpd-usb0.conf` 中能看到：
 
 ```text
-IPv4: 自动获取
+start 192.168.110.2
+end 192.168.110.20
+interface usb0
+option subnet 255.255.255.0
+option router 192.168.110.1
 ```
 
-测试：
+## 电脑端验证
+
+Windows 端将该 USB 网卡设置为：
+
+```text
+IPv4: 自动获得 IP 地址
+DNS:  自动获得 DNS 服务器地址
+```
+
+如果之前手动设置过 IPv4，建议改回自动获取后，禁用再启用一次该 USB 网卡，或者重新插拔 USB。
+
+验证命令：
 
 ```sh
 adb devices
@@ -300,13 +364,38 @@ ping 192.168.110.1
 ssh root@192.168.110.1
 ```
 
-Windows 上如果之前手动填过 IPv4，需要改回“自动获得 IP 地址”，或者禁用/启用一次该 USB 网卡让它重新 DHCP。
+Linux 主机上可以查看 USB 网卡是否拿到地址：
 
-已验证 ping 结果：
-
-```text
-11 packets transmitted, 11 received, 0% packet loss
-rtt avg about 0.333 ms
+```sh
+ip addr
+ip route
+ping 192.168.110.1
 ```
 
+## 下载验证
 
+Linux 主机侧 USB 网卡已经通过 DHCP 自动获取到地址：
+
+```text
+enx7ad1ca5b5ffb
+inet 192.168.110.2
+netmask 255.255.255.0
+```
+
+随后通过 USB 网卡 SSH 登录开发板：
+
+```sh
+ssh root@192.168.110.1
+```
+
+登录成功后，终端提示符为：
+
+```text
+root@ATK-DLRK3588:~#
+```
+
+验证截图：
+
+![USB RNDIS 获取地址并 SSH 登录开发板](images/usb-rndis-ssh-verify.png)
+
+ADB 和 RNDIS 复合设备同时启用，板端固定 IP 为 `192.168.110.1`，主机端可通过 DHCP 自动获取 `192.168.110.x` 地址。
