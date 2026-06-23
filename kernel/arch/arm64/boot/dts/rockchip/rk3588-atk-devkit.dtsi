@@ -913,6 +913,7 @@
 
 &usbdrd_dwc3_0 {
 	dr_mode = "otg";
+	status = "okay";
 	usb-role-switch;
 	port {
 		#address-cells = <1>;
@@ -924,8 +925,13 @@
 	};
 };
 
+&usbdrd3_1 {
+	status = "disabled";
+};
+
 &usbdrd_dwc3_1 {
 	dr_mode = "otg";
+	status = "disabled";
 	usb-role-switch;
 	port {
 		#address-cells = <1>;
